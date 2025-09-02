@@ -26,7 +26,7 @@ static class Program
     static async Task Main()
     {
         Win32.AllocConsole();
-
+        Thread.Sleep(100);
         using var udp = new UdpClient(0);
         var intermediaryEp = new IPEndPoint(IPAddress.Parse(IntermediaryIp), IntermediaryPort);
 
