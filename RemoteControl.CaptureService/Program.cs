@@ -4,13 +4,15 @@ using System.Net.Sockets;
 using System.Net;
 using System.Text;
 using RemoteControl.Shared;
+using RemoteControl.Shared.Extensions;
 using RemoteControl.CaptureService.CommandHandlers;
+using System.IO;
 
 static class Program
 {
     private const string IntermediaryIp = "192.168.1.42";
     private const int IntermediaryPort = 7000;
-    private const int CaptureIntervalMs = 100;
+    private const int CaptureIntervalMs = 50;
 
     public static ConcurrentDictionary<byte, IHandler> Handlers { get; private set; } = new ConcurrentDictionary<byte, IHandler>();
 
@@ -71,25 +73,24 @@ static class Program
             var index = 0;
             var totalPackets = data.Length / maxPacketSize;
 
+            using var ms = new MemoryStream();
+            using var writer = new BinaryWriter(ms, Encoding.UTF8);
+
             while (offset < data.Length)
             {
-                int chunkSize = Math.Min(maxPacketSize, data.Length - offset);
+                var chunkSize = Math.Min(maxPacketSize, data.Length - offset);
 
-                byte[] header = [.. Encoding.UTF8.GetBytes($" {serverId}")
-                        , .. BitConverter.GetBytes(frameId)
-                        , .. BitConverter.GetBytes(totalPackets)
-                        , .. BitConverter.GetBytes(index)];
 
-                header[0] = Command.FRAME;
+                writer.Write(Command.FRAME, serverId, frameId, totalPackets, index);
+                writer.Write(data, offset, chunkSize);
+                writer.Flush();
 
-                byte[] chunk = new byte[header.Length + chunkSize];
+                var chunk = ms.GetBuffer();
 
-                Buffer.BlockCopy(header, 0, chunk, 0, header.Length);
-                Buffer.BlockCopy(data, offset, chunk, header.Length, chunkSize);
+                ms.SetLength(0);   
+                ms.Position = 0;   
 
                 await udp.SendAsync(chunk, chunk.Length, intermediaryEp);
-
-                //Console.WriteLine($"Gönderildi: {chunkSize} byte");
 
                 offset += chunkSize;
                 index++;
