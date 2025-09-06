@@ -2,7 +2,7 @@
 using System.Net.Sockets;
 using System.Net;
 using System.Text;
-using System.Windows.Forms;
+using RemoteControl.Shared.Extensions;
 
 namespace RemoteControl.WindowsClient
 {
@@ -64,88 +64,115 @@ namespace RemoteControl.WindowsClient
 
         private void PictureBox_MouseMove(object sender, MouseEventArgs e)
         {
-            var command = new byte[] { Command.CONTROL, ControlCommand.MOUSE_MOVE };
-            byte[] msg = [.. command,
-                ..Encoding.UTF8.GetBytes(_serverId),
-                ..new byte[] { 0x0 , (byte)pictureBox1.SizeMode } ,
-                ..BitConverter.GetBytes(ClientSize.Height),
-                ..BitConverter.GetBytes(ClientSize.Width),
-                ..BitConverter.GetBytes(e.Location.X),
-                ..BitConverter.GetBytes(e.Location.Y)
-            ];
+            using var ms = new MemoryStream();
+            using var writer = new BinaryWriter(ms, Encoding.UTF8);
+            writer.Write(Command.CONTROL
+                , ControlCommand.MOUSE_MOVE
+                , Encoding.UTF8.GetBytes(_serverId)
+                , (byte)0x00
+                , (byte)pictureBox1.SizeMode
+                , ClientSize.Height
+                , ClientSize.Width
+                , e.Location.X
+                , e.Location.Y);
 
-            _udp.Send(msg, msg.Length, _serverEp);
+            writer.Flush();
+            var chunk = ms.GetBuffer();
+
+            _udp.Send(chunk, chunk.Length, _serverEp);
         }
 
         private void PictureBox_MouseDown(object sender, MouseEventArgs e)
         {
-            var command = new byte[] { Command.CONTROL, ControlCommand.MOUSE_DOWN };
             var button = e.Button == MouseButtons.Left ? MouseButton.LEFT : MouseButton.RIGHT;
 
-            byte[] msg = [.. command,
-                ..Encoding.UTF8.GetBytes(_serverId),
-                ..new byte[] { 0x0 , (byte)pictureBox1.SizeMode } ,
-                ..BitConverter.GetBytes(ClientSize.Height),
-                ..BitConverter.GetBytes(ClientSize.Width),
-                ..BitConverter.GetBytes(e.Location.X),
-                ..BitConverter.GetBytes(e.Location.Y),
-                .. new byte[]{ button }
-            ];
-            _udp.Send(msg, msg.Length, _serverEp);
+            using var ms = new MemoryStream();
+            using var writer = new BinaryWriter(ms, Encoding.UTF8);
+            ms.Position = 0;
 
+            writer.Write(Command.CONTROL
+                , ControlCommand.MOUSE_DOWN
+                , Encoding.UTF8.GetBytes(_serverId)
+                , (byte)0x00
+                , (byte)pictureBox1.SizeMode
+                , ClientSize.Height
+                , ClientSize.Width
+                , e.Location.X
+                , e.Location.Y
+                , button);
+
+            var chunk = ms.GetBuffer();
+
+            _udp.Send(chunk, chunk.Length, _serverEp);
         }
 
         private void PictureBox_MouseUp(object sender, MouseEventArgs e)
         {
-            var command = new byte[] { Command.CONTROL, ControlCommand.MOUSE_UP };
             var button = e.Button == MouseButtons.Left ? MouseButton.LEFT : MouseButton.RIGHT;
 
-            byte[] msg = [.. command,
-                ..Encoding.UTF8.GetBytes(_serverId),
-                ..new byte[] { 0x0 , (byte)pictureBox1.SizeMode } ,
-                ..BitConverter.GetBytes(ClientSize.Height),
-                ..BitConverter.GetBytes(ClientSize.Width),
-                ..BitConverter.GetBytes(e.Location.X),
-                ..BitConverter.GetBytes(e.Location.Y),
-                .. new byte[]{ button }
-            ];
-            _udp.Send(msg, msg.Length, _serverEp);
+            using var ms = new MemoryStream();
+            using var writer = new BinaryWriter(ms, Encoding.UTF8);
+
+            writer.Write(Command.CONTROL
+                , ControlCommand.MOUSE_UP
+                , Encoding.UTF8.GetBytes(_serverId)
+                , (byte)0x00
+                , (byte)pictureBox1.SizeMode
+                , ClientSize.Height
+                , ClientSize.Width
+                , e.Location.X
+                , e.Location.Y
+                , button);
+
+            var chunk = ms.GetBuffer();
+
+            _udp.Send(chunk, chunk.Length, _serverEp);
         }
 
         private void RemoteViewForm_KeyDown(object sender, KeyEventArgs e)
         {
-            var command = new byte[] { Command.CONTROL, ControlCommand.KEY_DOWN };
+            using var ms = new MemoryStream();
+            using var writer = new BinaryWriter(ms, Encoding.UTF8);
 
-            byte[] msg = [.. command,
-                ..Encoding.UTF8.GetBytes(_serverId),
-                ..new byte[]{ (byte)e.KeyValue }
-            ];
+            writer.Write(Command.CONTROL
+                , ControlCommand.KEY_DOWN
+                , Encoding.UTF8.GetBytes(_serverId)
+                , e.KeyValue);
 
-            _udp.Send(msg, msg.Length, _serverEp);
+            writer.Flush();
+            var chunk = ms.GetBuffer();
+
+            _udp.Send(chunk, chunk.Length, _serverEp);
 
         }
 
         private void RemoteViewForm_KeyUp(object sender, KeyEventArgs e)
         {
-            var command = new byte[] { Command.CONTROL, ControlCommand.KEY_UP };
+            using var ms = new MemoryStream();
+            using var writer = new BinaryWriter(ms, Encoding.UTF8);
 
-            byte[] msg = [.. command,
-                ..Encoding.UTF8.GetBytes(_serverId),
-                ..new byte[]{ (byte)e.KeyValue }
-            ];
+            writer.Write(Command.CONTROL
+                , ControlCommand.KEY_UP
+                , Encoding.UTF8.GetBytes(_serverId)
+                , e.KeyValue);
 
-            _udp.Send(msg, msg.Length, _serverEp);
+            writer.Flush();
+            var chunk = ms.GetBuffer();
+
+            _udp.Send(chunk, chunk.Length, _serverEp);
         }
         async void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
-            _running = false;
-            if (_udp != null && !string.IsNullOrEmpty(_serverId))
-            {
-                var payload = Encoding.UTF8.GetBytes($" {_serverId}");
-                payload[0] = Command.UNSUBSCRIBE;
-                await _udp.SendAsync(payload, payload.Length, _serverEp);
-                _udp.Close();
-            }
+            using var ms = new MemoryStream();
+            using var writer = new BinaryWriter(ms, Encoding.UTF8);
+
+            writer.Write(Command.UNSUBSCRIBE
+                , Encoding.UTF8.GetBytes(_serverId));
+
+            writer.Flush();
+            var chunk = ms.GetBuffer();
+
+            _udp.Send(chunk, chunk.Length, _serverEp);
         }
     }
 }

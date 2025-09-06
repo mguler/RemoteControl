@@ -10,12 +10,16 @@ namespace RemoteControl.CaptureService.CommandHandlers
         public void Handle(UdpClient udp, UdpReceiveResult result)
         {
             var data = result.Buffer;
+            using var ms = new MemoryStream(data);
+            using var binaryReader = new BinaryReader(ms);
 
-            var viewMode = data[12];
-            var h = BitConverter.ToInt32(data, 14);
-            var w = BitConverter.ToInt32(data, 18);
-            var x = BitConverter.ToInt32(data, 22);
-            var y = BitConverter.ToInt32(data, 26);
+            ms.Position = 12;
+
+            var viewMode = binaryReader.ReadInt16();
+            var h = binaryReader.ReadInt32();
+            var w = binaryReader.ReadInt32();
+            var x = binaryReader.ReadInt32();
+            var y = binaryReader.ReadInt32();
 
             var bounds = Screen.PrimaryScreen.Bounds;
             var posX = (double)x / w * bounds.Width;
