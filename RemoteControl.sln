@@ -7,9 +7,14 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RemoteControl.IntermediateS
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RemoteControl.CaptureService", "RemoteControl.CaptureService\RemoteControl.CaptureService.csproj", "{3AB6C2C8-7C00-4B83-9A92-4ADD2EE546BA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RemoteControl.Shared", "RemoteControl.Shared\RemoteControl.Shared.csproj", "{23EC80DE-23E4-4123-A0D3-B4F5904A10C2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RemoteControl.Shared", "RemoteControl.Shared\RemoteControl.Shared.csproj", "{23EC80DE-23E4-4123-A0D3-B4F5904A10C2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RemoteControl.WindowsClient", "RemoteControl.WindowsClient\RemoteControl.WindowsClient.csproj", "{F97744CC-E09A-4A51-AC8E-E6D339265347}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RemoteControl.WindowsClient", "RemoteControl.WindowsClient\RemoteControl.WindowsClient.csproj", "{F97744CC-E09A-4A51-AC8E-E6D339265347}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{8D42CBCE-88CF-4ACD-9641-6FF7EF4D3E32}"
+	ProjectSection(SolutionItems) = preProject
+		LICENSE.txt = LICENSE.txt
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
