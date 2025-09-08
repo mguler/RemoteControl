@@ -1,0 +1,6 @@
+License
+
+Copyright (c) 2025 Murat Güler
+
+Permission is granted to use this software for personal, educational, or commercial purposes, and to modify its code.
+However, the sale of this software or the distribution of modified versions for commercial purposes is strictly prohibited.
