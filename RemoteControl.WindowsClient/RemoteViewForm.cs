@@ -56,11 +56,10 @@ namespace RemoteControl.WindowsClient
                     var currentFrame = new Bitmap(Image.FromStream(_viewCache));
                     pictureBox1.Invoke((Action)(() => pictureBox1.Image = currentFrame));
                 }
-                catch { throw; }
+                catch {  }
                 finally 
                 {
-                    _viewCache.Capacity = 0;
-                    _viewCache.Position = 0;
+                   _viewCache.SetLength(0);
                 }
             }
 
