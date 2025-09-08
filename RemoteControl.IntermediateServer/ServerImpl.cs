@@ -32,7 +32,7 @@ namespace RemoteControl.IntermediateServer
             }
             catch (SocketException ex)
             {
-
+                throw;
             }
         }
 
