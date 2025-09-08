@@ -11,9 +11,9 @@ namespace RemoteControl.WindowsClient
         UdpClient _udp;
         IPEndPoint _serverEp;
         string _serverId;
-        private bool _running;
-        private List<byte[]> _d = new List<byte[]>();
-
+        bool _running;
+        MemoryStream _viewCache;
+        BinaryWriter _viewWriter;
         public RemoteViewForm(UdpClient udp, IPEndPoint serverEP, string serverId)
         {
             _udp = udp;
@@ -21,6 +21,9 @@ namespace RemoteControl.WindowsClient
             _serverId = serverId;
             InitializeComponent();
             _running = true;
+            _viewCache = new MemoryStream();
+            _viewWriter = new BinaryWriter(_viewCache); 
+
             _ = Task.Run(ReceiveLoop);
         }
 
@@ -37,26 +40,28 @@ namespace RemoteControl.WindowsClient
 
         void Process(byte[] data)
         {
-            var id = BitConverter.ToInt32(data, 11);
-            var packets = BitConverter.ToInt32(data, 15);
-            var index = BitConverter.ToInt32(data, 19);
+            using var ms = new MemoryStream(data);
+            using var reader = new BinaryReader(ms);
+            
+            ms.Position = 15;
 
-            var payload = new byte[data.Length - 23];
-            Buffer.BlockCopy(data, 23, payload, 0, data.Length - 23);
-            _d.Add(payload);
+            var packets = reader.ReadInt32();
+            var index = reader.ReadInt32();
+            _viewWriter.Write(data, 23, data.Length - 23);
 
             if (index >= packets)
             {
                 try
                 {
-                    var len = _d.Sum(x => x.Length);
-                    var ms = new MemoryStream(len);
-                    _d.ForEach(x => ms.Write(x));
-                    var currentFrame = new Bitmap(Image.FromStream(ms));
+                    var currentFrame = new Bitmap(Image.FromStream(_viewCache));
                     pictureBox1.Invoke((Action)(() => pictureBox1.Image = currentFrame));
                 }
-                catch { }
-                finally { _d = new List<byte[]>(); }
+                catch { throw; }
+                finally 
+                {
+                    _viewCache.Capacity = 0;
+                    _viewCache.Position = 0;
+                }
             }
 
         }
@@ -76,7 +81,6 @@ namespace RemoteControl.WindowsClient
                 , e.Location.X
                 , e.Location.Y);
 
-            writer.Flush();
             var chunk = ms.GetBuffer();
 
             _udp.Send(chunk, chunk.Length, _serverEp);
@@ -139,7 +143,6 @@ namespace RemoteControl.WindowsClient
                 , Encoding.UTF8.GetBytes(_serverId)
                 , e.KeyValue);
 
-            writer.Flush();
             var chunk = ms.GetBuffer();
 
             _udp.Send(chunk, chunk.Length, _serverEp);
@@ -156,7 +159,6 @@ namespace RemoteControl.WindowsClient
                 , Encoding.UTF8.GetBytes(_serverId)
                 , e.KeyValue);
 
-            writer.Flush();
             var chunk = ms.GetBuffer();
 
             _udp.Send(chunk, chunk.Length, _serverEp);
