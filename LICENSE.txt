@@ -1,6 +1,6 @@
 #License
 
-Copyright (c) 2025 Murat Güler
+Copyright (c) 2025 Murat GÃ¼ler
 
-This software may be used for personal, educational, or commercial purposes, and modification of its code is permitted for personal and educational use.
+This software may be used for personal, educational, or professional purposes, and modification of its code is permitted for personal and educational use.
 However, selling the software, or distributing the original or modified versions for commercial purposes, is strictly prohibited.
