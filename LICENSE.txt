@@ -1,6 +1,12 @@
-#License
+License
 
 Copyright (c) 2025 Murat Güler
 
 This software may be used for personal, educational, or professional purposes, and modification of its code is permitted for personal and educational use.
 However, selling the software, or distributing the original or modified versions for commercial purposes, is strictly prohibited.
+
+Warranty Disclaimer
+All risks and liabilities related to the use of the Software rest solely with the user. The user shall be solely responsible for any direct or indirect damages, losses, or legal claims arising from the use of the Software; the developer or copyright holder shall not be held liable under any circumstances.
+
+Changes to License
+Any changes to the License and Terms of Use shall apply to all previous versions and the current version of the Software, unless explicitly stated otherwise.
