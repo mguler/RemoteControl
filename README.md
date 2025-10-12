@@ -47,49 +47,38 @@ The data communication protocol is defined mainly in the Shared project via mode
 
 To run the project locally, follow these steps:
 
-1. Clone this repository:  
-   ```bash
-   git clone https://github.com/mguler/RemoteControl.git
-Open the solution file (RemoteControl.sln) in an IDE (e.g., Visual Studio)
+1. Clone this repository:
 
-Restore all required NuGet packages
+       git clone https://github.com/mguler/RemoteControl.git
 
-Set startup projects:
+2. Open the solution file (`RemoteControl.sln`) in an IDE (e.g., Visual Studio)  
+3. Restore all required NuGet packages  
+4. Set startup projects:
+   - `IntermediateServer` — server role  
+   - `CaptureService` — screen capture service  
+   - `WindowsClient` — client user interface  
+5. Run each project (first the server, then the service, and finally the client)  
+6. Connect to the server from the client interface and start control  
 
-IntermediateServer — server role
+> Note: Connection settings (IP, port, etc.) may be defined in configuration files. Update them as needed.
 
-CaptureService — screen capture service
+## Usage Example
 
-WindowsClient — client user interface
-
-Run each project (first the server, then the service, and finally the client)
-
-Connect to the server from the client interface and start control
-
-Note: Connection settings (IP, port, etc.) may be defined in configuration files. Update them as needed.
-
-Usage Example
 Example usage flow:
 
-Run the server application.
+1. Run the server application.  
+2. Start the CaptureService and establish a connection to the server.  
+3. Open the WindowsClient, enter the server’s IP and port information.  
+4. Click the “Connect” button — the client will start receiving the screen feed and sending control commands.
 
-Start the CaptureService and establish a connection to the server.
+## Contributing
 
-Open the WindowsClient, enter the server’s IP and port information.
+1. Fork the repository  
+2. Create a new feature or fix branch (`feature/new-feature`)  
+3. Make your changes and commit them  
+4. Open a pull request — remember to include a detailed explanation  
 
-Click the “Connect” button — the client will start receiving the screen feed and sending control commands.
+## License
 
-Contributing
-Fork the repository
-
-Create a new feature or fix branch (feature/new-feature)
-
-Make your changes and commit them
-
-Open a pull request — remember to include a detailed explanation
-
-Please adhere to coding standards, maintain test coverage, and ensure proper documentation.
-
-License
-This project is licensed under the terms described in the LICENSE.txt file.
+This project is licensed under the terms described in the **LICENSE.txt** file.  
 (See the original license file for details.)
