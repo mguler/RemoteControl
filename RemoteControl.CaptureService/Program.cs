@@ -6,11 +6,11 @@ using System.Text;
 using RemoteControl.Shared;
 using RemoteControl.Shared.Extensions;
 using RemoteControl.CaptureService.CommandHandlers;
-using System.IO;
+using System.Runtime.InteropServices;
 
 static class Program
 {
-    private const string IntermediaryIp = "192.168.1.42";
+    private const string IntermediaryIp = "172.20.10.2";
     private const int IntermediaryPort = 7000;
     private const int CaptureIntervalMs = 50;
 
@@ -67,7 +67,16 @@ static class Program
         var frameId = 0;
         while (true)
         {
-            var data = ScreenCapture.CaptureScreenBytes();
+            var info = new CursorInfo();
+            info.cbSize = Marshal.SizeOf(info);
+
+            if (Win32.GetCursorInfo(out info) && info.flags == Win32.CURSOR_SHOWING)
+            {
+                //TODO:implement cursor shape sharing
+                //info.hCursor -> contains the cursor shape
+            }
+
+            var data = ScreenCaptureWin32BitmapImpl.CaptureScreenBytes();
             var maxPacketSize = 60 * 1024; // güvenli limit (~60 KB)
             var offset = 0;
             var index = 0;
@@ -87,8 +96,8 @@ static class Program
 
                 var chunk = ms.GetBuffer();
 
-                ms.SetLength(0);   
-                ms.Position = 0;   
+                ms.SetLength(0);
+                ms.Position = 0;
 
                 await udp.SendAsync(chunk, chunk.Length, intermediaryEp);
 
