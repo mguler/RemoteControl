@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using RemoteControl.CaptureService;
+using System.Runtime.InteropServices;
 
 public static class Win32
 {

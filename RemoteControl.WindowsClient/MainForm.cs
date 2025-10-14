@@ -25,7 +25,8 @@ namespace RemoteControl.WindowsClient
             var payload = Encoding.UTF8.GetBytes($" {serverId}");
             payload[0] = Command.SUBSCRIBE;
 
-            IPEndPoint serverEp = new IPEndPoint(new IPAddress(new byte[] { 192, 168, 1, 42 }), Port);
+            var ip = new byte[] { 172,20,10,2 }; //new byte[] { 172, 20, 10, 2 }
+            IPEndPoint serverEp = new IPEndPoint(new IPAddress(ip), Port);
             UdpClient  udp = new UdpClient(0);
             await udp.SendAsync(payload, serverEp);
 
