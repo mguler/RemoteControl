@@ -1,134 +1,134 @@
 ﻿using RemoteControl.CaptureService;
 using System.Collections.Concurrent;
-using System.Net.Sockets;
-using System.Net;
-using System.Text;
 using RemoteControl.Shared;
-using RemoteControl.Shared.Extensions;
 using RemoteControl.CaptureService.CommandHandlers;
-using System.Runtime.InteropServices;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.DependencyInjection;
+using RemoteControl.Shared.Extensions;
+using System.Diagnostics;
 
 static class Program
 {
-    private const string IntermediaryIp = "172.20.10.2";
-    private const int IntermediaryPort = 7000;
-    private const int CaptureIntervalMs = 50;
-
-    public static ConcurrentDictionary<byte, IHandler> Handlers { get; private set; } = new ConcurrentDictionary<byte, IHandler>();
-
-    static Program()
-    {
-        Handlers[ControlCommand.MOUSE_MOVE] = new MouseMoveHandler();
-        Handlers[ControlCommand.MOUSE_DOWN] = new MouseDownHandler();
-        Handlers[ControlCommand.MOUSE_UP] = new MouseUpHandler();
-        Handlers[ControlCommand.KEY_DOWN] = new KeyDownHandler();
-        Handlers[ControlCommand.KEY_UP] = new KeyUpHandler();
-    }
-
     static async Task Main()
     {
-        Win32.AllocConsole();
-        Thread.Sleep(100);
-        using var udp = new UdpClient(0);
-        var intermediaryEp = new IPEndPoint(IPAddress.Parse(IntermediaryIp), IntermediaryPort);
+        var args = CommandlineArguments.Get();
+        var isServiceMode = !Environment.UserInteractive;
+        var isHelpRequested = args.ContainsKey("help");
 
-        // REGISTER
-        await udp.SendAsync(new[] { (byte)Command.REGISTER }, 1, intermediaryEp);
-
-        // Receive IDnew
-        var result = await udp.ReceiveAsync();
-        var resp = result.Buffer;
-
-        if (resp.Length != 11 || resp[0] != (byte)Command.ID)
+        if (isHelpRequested)
         {
-            Console.WriteLine("[Error] Registration failed.");
+            ShowHelp();
             return;
         }
 
-        var serverId = Encoding.UTF8.GetString(resp, 1, 10);
-        Console.WriteLine($"[Info] Registered ID: {serverId}");
-
-        try
+        if (!CheckMandatoryParameters(args)) 
         {
-            // Start listening for control and streaming
-            _ = Task.Run(() => ReceiveControlLoop(udp, serverId));
-            await CaptureLoop(udp, intermediaryEp, serverId);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine(ex);
+            return;
         }
 
-        Win32.FreeConsole();
+        var builder = Host.CreateDefaultBuilder()
+        .ConfigureServices(services =>
+        {
+            services.AddSingleton(serviceResolver => args);
+         
+            services.AddSingleton(serviceResolver => {
+                var handlers = new ConcurrentDictionary<byte, IHandler>();
+                handlers[ControlCommand.MOUSE_MOVE] = new MouseMoveHandler();
+                handlers[ControlCommand.MOUSE_DOWN] = new MouseDownHandler();
+                handlers[ControlCommand.MOUSE_UP] = new MouseUpHandler();
+                handlers[ControlCommand.KEY_DOWN] = new KeyDownHandler();
+                handlers[ControlCommand.KEY_UP] = new KeyUpHandler();
+                return handlers;
+            });
+
+            services.AddHostedService<RemoteControlService>();
+        });
+
+        if (isServiceMode)
+        {
+            #if DEBUG
+            Debugger.Launch();
+            #endif
+             
+            if (OperatingSystem.IsWindows())
+            {
+                builder.UseWindowsService();
+            }
+            else
+            {
+                Console.WriteLine("Application does not support installed OS in background mode");
+            }
+        }
+
+        var host = builder.Build();
+        await host.RunAsync();
     }
 
-    static async Task CaptureLoop(UdpClient udp, IPEndPoint intermediaryEp, string serverId)
+    static void ShowHelp()
     {
-        var frameId = 0;
-        while (true)
-        {
-            var info = new CursorInfo();
-            info.cbSize = Marshal.SizeOf(info);
+        Console.WriteLine($@"
+Usage: RemoteControl.CaptureService.exe [option] <arguments> 
 
-            if (Win32.GetCursorInfo(out info) && info.flags == Win32.CURSOR_SHOWING)
-            {
-                //TODO:implement cursor shape sharing
-                //info.hCursor -> contains the cursor shape
-            }
+Remote control and screen view utility
 
-            var data = ScreenCaptureWin32BitmapImpl.CaptureScreenBytes();
-            var maxPacketSize = 60 * 1024; // güvenli limit (~60 KB)
-            var offset = 0;
-            var index = 0;
-            var totalPackets = data.Length / maxPacketSize;
+Options:
+  --ip                  Ip v4 address of RemoteControl server
+  --port                Server port
+  --fps                 Screen capture frequency (Frame Per Second) (10 , 15 , 20 , 25 are valid values)
+  --console             Run in console mode
+  --help                Show help and exit
 
-            using var ms = new MemoryStream();
-            using var writer = new BinaryWriter(ms, Encoding.UTF8);
-
-            while (offset < data.Length)
-            {
-                var chunkSize = Math.Min(maxPacketSize, data.Length - offset);
-
-
-                writer.Write(Command.FRAME, serverId, frameId, totalPackets, index);
-                writer.Write(data, offset, chunkSize);
-                writer.Flush();
-
-                var chunk = ms.GetBuffer();
-
-                ms.SetLength(0);
-                ms.Position = 0;
-
-                await udp.SendAsync(chunk, chunk.Length, intermediaryEp);
-
-                offset += chunkSize;
-                index++;
-            }
-
-            await Task.Delay(CaptureIntervalMs);
-            frameId++;
-        }
+Examples:
+  RemoteControl.CaptureService.exe --ip 127.0.0.1 --port 7000 --fps 25
+  RemoteControl.CaptureService.exe --ip 127.0.0.1 --port 7000 --fps 20 --console
+                ");
     }
-    static async Task ReceiveControlLoop(UdpClient udp, string serverId)
+    static bool CheckMandatoryParameters(Dictionary<string,string> args) 
     {
-        while (true)
+        var result = true;
+
+        if (args.ContainsKey("ip"))
         {
-            try
+            if (!args["ip"].IsMatch("^(?:[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])(?:\\.(?:0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])){3}$"))
             {
-                var result = await udp.ReceiveAsync();
-                var data = result.Buffer;
-                var command = data[0];
-                var action = data[1];
-
-                if (command != (byte)Command.CONTROL)
-                    continue;
-
-                Handlers[action].Handle(udp, result);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex);
+                Console.WriteLine("Invalid IPv4 format. Expected: 0–255.0–255.0–255.0–255 (e.g. 192.168.1.100)");
+                result = false;
             }
         }
+        else
+        {
+            Console.WriteLine("Error: Missing required parameter. --ip");
+            result = false;
+        }
+
+        if (args.ContainsKey("port"))
+        {
+            if (!args["port"].IsMatch("^(?:[1-9]|[1-9]\\d|[1-9]\\d{2}|[1-9]\\d{3}|[1-5]\\d{4}|6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])$"))
+            {
+                Console.WriteLine("Error: Invalid port number. Expected : An integer between: 1–65535.");
+                result = false;
+            }
+        }
+        else
+        {
+            Console.WriteLine("Error: Missing required parameter. --port");
+            result = false;
+        }
+
+        if (args.ContainsKey("fps"))
+        {
+            if (!args["fps"].IsMatch("^10|15|20|25|30$"))
+            {
+                Console.WriteLine("Error: Wrong FPS value. Expected : valid values are 10,15,20,25,30 ");
+                result = false;
+            }
+        }
+
+        if (!result) 
+        {
+            Console.WriteLine("use --help command for more help");            
+        }
+
+        return result;
     }
 }
