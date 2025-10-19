@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "RemoteControl.CaptureService": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 7000--server 192.168.1.42 --fps 20 --console"
+    }
+  }
+}

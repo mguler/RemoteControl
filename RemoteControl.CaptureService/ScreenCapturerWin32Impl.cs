@@ -2,7 +2,7 @@
 
 namespace RemoteControl.CaptureService
 {
-    public class ScreenCaptureWin32BitmapImpl
+    public class ScreenCapturerWin32Impl
     {
         public static byte[] CaptureScreenBytes()
         {
